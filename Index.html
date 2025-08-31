@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Odyssey map</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<style>
+    /* Hide the default Leaflet popup close button */
+    .leaflet-popup-close-button {
+        display: none !important;
+    }
+    #map {
+        width: 100vw;
+        height: 100vh;
+        background: transparent;
+    }
+    /* Remove white background and shadow from Leaflet popup container */
+    .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+        background: transparent !important;
+        box-shadow: none !important;
+    }
+    body {
+        min-height: 100vh;
+        background: radial-gradient(circle at center, rgba(74,60,78,1) 0%, rgba(74,60,78,1) 70%, #4a3c4e 100%);
+    }
+    /* Sliding menu panel styles */
+    #slide-menu {
+        position: fixed;
+        top: 0;
+        left: -500px;
+        width: 400px;
+        height: 100vh;
+        background: rgba(34,34,34,0.98);
+        box-shadow: 2px 0 16px rgba(0,0,0,0.3);
+        z-index: 2000;
+        transition: left 0.35s cubic-bezier(.77,0,.18,1);
+        display: flex;
+        flex-direction: column;
+        padding: 32px 24px 24px 24px;
+        color: #fff;
+    }
+    #slide-menu.open {
+        left: 0;
+    }
+    #slide-menu .close-menu-btn {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        background: none;
+        border: none;
+        color: #fff;
+        font-size: 2em;
+        cursor: pointer;
+    }
+    /* Tabs for slide menu */
+    #slide-menu-tabs {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+    .slide-menu-tab-btn {
+        background: #333;
+        color: #fff;
+        border: none;
+        border-radius: 6px 6px 0 0;
+        padding: 10px 24px;
+        font-size: 1.1em;
+        cursor: pointer;
+        outline: none;
+        transition: background 0.2s;
+    }
+    .slide-menu-tab-btn.active {
+        background: #0078d7;
+        color: #fff;
+    }
+    .slide-menu-tab-content {
+        display: none;
+        font-size: 1.1em;
+        margin-top: 8px;
+    }
+    .slide-menu-tab-content.active {
+        display: block;
+    }
+</style>
+</head>
+<body>
+    <div id="map-gradient-overlay" style="position:absolute;left:0;top:0;width:2000px;height:3000px;pointer-events:none;z-index:10;background:radial-gradient(circle at 1700px 1000px, rgba(74,60,78,1) 0%, rgba(74,60,78,1) 70%, #000 100%);"></div>
+    <div id="map"></div>
+        <div id="slide-menu">
+            <button class="close-menu-btn" title="Close Menu">&times;</button>
+            <h2 style="margin-top:0;margin-bottom:24px;">Menu</h2>
+            <div id="slide-menu-tabs">
+                <button class="slide-menu-tab-btn active" data-tab="info">Information</button>
+                <button class="slide-menu-tab-btn" data-tab="links">Useful Links</button>
+            </div>
+            <div id="slide-menu-tab-info" class="slide-menu-tab-content active">
+                <div id="credit-label" style="position:absolute;left:24px;bottom:100px;font-size:1em;color:#bbb;">Credit Robban6oo <span style="font-size:0.8em;">(Discord)</span></div>
+                <b>Arcane Odyssey Map Information</b><br>
+                <ul style="margin-top:12px;">
+                    <li>Interactive map with locations, items, and sky islands.</li>
+                    <li>Click markers for images and details.</li>
+                    <li>Use the menu for links.</li>
+                
+                </ul>
+            </div>
+            <div id="slide-menu-tab-links" class="slide-menu-tab-content">
+                <b>Useful Links</b><br>
+                <ul style="margin-top:12px;">
+                    <li><a href="https://roblox.com/games/3272915504/Arcane-Odyssey" target="_blank" style="color:#7ec8e3;">Play Arcane Odyssey on Roblox</a></li>
+                    <li><a href="https://roblox-arcane-odyssey.fandom.com/wiki/Arcane_Odyssey_Wiki" target="_blank" style="color:#7ec8e3;">Arcane Odyssey Wiki</a></li>
+                    <li><a href="https://docs.google.com/spreadsheets/d/1L2P8zWs0VQ0kNxvP4wlbpK_7ySHr6OCiyq_mWROH9zk/edit?gid=71788216#gid=71788216" target="_blank" style="color:#7ec8e3;">Value List - The Galleon</a></li>
+                    <li><a href="https://docs.google.com/spreadsheets/d/1owLKnfFNdVwTyP6CNWQUjehFoCT2BV4tHVXpclm-60o/edit?gid=92809900#gid=92809900" target="_blank" style="color:#7ec8e3;"> Potion & Jewel Analysis</a></li>
+                    <li><a href="https://tools.arcaneodyssey.net/" target="_blank" style="color:#7ec8e3;"> Arcane Odyssey Tools</a></li>
+                    <li><a href="https://aoguides.myalt.dev/treasure/" target="_blank" style="color:#7ec8e3;"> Treasure Chart Locator</a></li>
+                    <li><a href="https://trello.com/b/Mv99bZYP/arcane-odyssey" target="_blank" style="color:#7ec8e3;"> Trello</a></li>
+                    <li><a href="https://discord.com/channels/160982950710738945/380182327373987861" target="_blank" style="color:#7ec8e3;"> Arcane Odyssey Discord</a></li>
+                </ul>
+            </div>
+        </div>
+        <div id="map"></div>
+    <!-- Button will be placed on the map using Leaflet's control system -->
+    <div id="coord-display" style="position:fixed;top:10px;right:10px;z-index:1000;background:rgba(255,255,255,0.9);padding:6px 12px;border-radius:6px;font-size:16px;box-shadow:0 2px 8px rgba(0,0,0,0.1);pointer-events:none;">Y: -, X: -</div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script>
+        // Markers that only appear when sky islands are shown
+        const skyIslandMarkersData = [
+            {
+                name: "Cirrus Island",
+                coords: [2180, 1414],
+                info: "This marker only appears when sky islands are shown."
+            },
+            {
+                name: "Djin Ruin",
+                coords: [1979, 1374],
+                info: "Info about this sky island."
+            },
+            {
+                name: "Sky Pumpkin",
+                coords: [2089, 1330],
+                info: "This marker only appears when sky islands are shown."
+            },
+            {
+                name: "Skycliff Island",
+                coords: [2369, 1465],
+                info: "This marker only appears when sky islands are shown."
+            },
+            {
+                name: "Myriad",
+                coords: [2033, 1274],
+                info: "This marker only appears when sky islands are shown."
+            }
+            // Add more sky island-only markers here
+        ];
+        const skyIslandMarkers = [];
+        // Custom popup logic for sky island markers
+        function createEditablePopup(marker, loc) {
+            // Use same image logic as location markers
+            marker.bindPopup(function() {
+                const nameNorm = loc.name.trim().toLowerCase().replace(/['’]/g, "");
+                let imageHtml = "";
+                if (nameNorm === "cirrus island") {
+                    imageHtml = `<img src='Bilder/cirrus-island.png' alt='Cirrus Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;'>`;
+                } else if (nameNorm === "skycliff island" || nameNorm === "sky cliff island") {
+                    imageHtml = `<img src='Bilder/skycliff-island.png' alt='Skycliff Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;'>`;
+                } else if (nameNorm === "djin ruin") {
+                    imageHtml = `<img src='Bilder/djin-ruin.png' alt='Djin Ruin Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (nameNorm === "sky pumpkin") {
+                    imageHtml = `<img src='Bilder/sky-pumpkin.png' alt='Sky Pumpkin Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (nameNorm === "the myriad") {
+                    imageHtml = `<img src='Bilder/the-myriad.png' alt='The Myriad Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                }
+                return `<div style='width:760px;min-height:200px;padding:16px;background:rgba(0,0,0,0.85);border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.5);color:white;display:flex;flex-direction:column;align-items:center;position:relative;'>
+                    <h3 style='margin-top:0;margin-bottom:12px;font-size:2em;text-align:center;'>${loc.name}</h3>
+                    ${imageHtml}
+                    <div style='width:100%;min-height:80px;background:rgba(0,0,0,0.7);color:white;border-radius:6px;border:1px solid #444;padding:8px;margin-top:8px;'>${loc.info}</div>
+                </div>`;
+            });
+            marker.on('popupopen', function() {
+                const saveBtn = document.getElementById(`save-${loc.name.replace(/\s/g, "")}`);
+                if (saveBtn) {
+                    saveBtn.onclick = function() {
+                        const newInfo = document.getElementById(`info-${loc.name.replace(/\s/g, "")}`).value;
+                        loc.info = newInfo;
+                        marker.closePopup();
+                        // The next time the popup opens, it will show the updated info
+                    };
+                }
+                // Removed unused close button logic
+            });
+        }
+        skyIslandMarkersData.forEach(loc => {
+            const marker = L.marker(loc.coords);
+            createEditablePopup(marker, loc);
+            skyIslandMarkers.push(marker);
+        });
+
+        function showSkyIslandMarkers() {
+            skyIslandMarkers.forEach(marker => {
+                if (!map.hasLayer(marker)) marker.addTo(map);
+            });
+        }
+    // Use only the toggle button logic for marker visibility
+    // When sky overlay is shown, show sky island markers and hide location markers
+    // When sky overlay is hidden, show location markers and hide sky island markers
+        function hideSkyIslandMarkers() {
+            skyIslandMarkers.forEach(marker => {
+                if (map.hasLayer(marker)) map.removeLayer(marker);
+            });
+        }
+        // Image dimensions (update if needed)
+    const imageWidth = 2000; // px
+    const imageHeight = 3000; // px
+
+        // Create the map instance
+        // Custom bounds: top-left [-2840, -3388], bottom-right [5840, 5388]
+        const map = L.map('map', {
+            crs: L.CRS.Simple,
+            minZoom: -2,
+            maxZoom: 2,
+            zoom: 0,
+            center: [imageHeight / 2, imageWidth / 2],
+            zoomDelta: 0.25, // smaller steps per zoom
+            wheelPxPerZoomLevel: 360, // much more scroll needed per zoom step
+            maxBounds: [[-2840, -3388], [5840, 5388]], // Prevent panning outside custom bounds
+            maxBoundsViscosity: 1.0, // Strongly restrict panning
+            zoomControl: false // Remove default zoom control
+        });
+
+        // Calculate image bounds
+        const bounds = [[0,0], [imageHeight, imageWidth]];
+
+        // Add the image as a layer
+        L.imageOverlay('Bilder/arcane-odyssey-map.png', bounds).addTo(map);
+        map.fitBounds(bounds);
+
+        // Add sky island overlay (hidden by default)
+        const skyOverlay = L.imageOverlay('Bilder/arcane-odyssey-sky-map.png', bounds, {opacity: 1});
+        let skyVisible = false;
+        // Add a custom menu icon control in the top left corner
+        const MenuControl = L.Control.extend({
+            onAdd: function(map) {
+                const container = L.DomUtil.create('div');
+                container.style.display = 'flex';
+                container.style.alignItems = 'center';
+                container.style.gap = '8px';
+                // Menu icon
+                const menuBtn = L.DomUtil.create('button', '', container);
+                menuBtn.id = 'menu-icon';
+                menuBtn.title = 'Menu';
+                menuBtn.innerHTML = `<svg width="32" height="32" viewBox="0 0 32 32"><rect y="7" width="32" height="4" rx="2" fill="#fff"/><rect y="14" width="32" height="4" rx="2" fill="#fff"/><rect y="21" width="32" height="4" rx="2" fill="#fff"/></svg>`;
+                menuBtn.style.background = '#222';
+                menuBtn.style.border = 'none';
+                menuBtn.style.borderRadius = '8px';
+                menuBtn.style.padding = '4px';
+                menuBtn.style.cursor = 'pointer';
+                menuBtn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.2)';
+                menuBtn.style.zIndex = '1001';
+                // Prevent map from panning when clicking the button
+                L.DomEvent.disableClickPropagation(menuBtn);
+                L.DomEvent.disableScrollPropagation(menuBtn);
+                L.DomEvent.on(menuBtn, 'mousedown dblclick', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                });
+                    // Slide menu logic
+                    setTimeout(() => {
+                        const slideMenu = document.getElementById('slide-menu');
+                        if (slideMenu) {
+                            menuBtn.onclick = function() {
+                                slideMenu.classList.add('open');
+                            };
+                            const closeBtn = slideMenu.querySelector('.close-menu-btn');
+                            if (closeBtn) {
+                                closeBtn.onclick = function() {
+                                    slideMenu.classList.remove('open');
+                                };
+                            }
+                        }
+                    }, 0);
+                // Toggle Sky Island button (same as before)
+                const btn = L.DomUtil.create('button', '', container);
+                btn.id = 'toggle-sky';
+                btn.textContent = 'Show Sky Island';
+                btn.style.padding = '8px 16px';
+                btn.style.fontSize = '16px';
+                btn.style.borderRadius = '6px';
+                btn.style.border = 'none';
+                btn.style.background = '#0078d7';
+                btn.style.color = 'white';
+                btn.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                btn.style.cursor = 'pointer';
+                btn.style.zIndex = '1001';
+                L.DomEvent.disableClickPropagation(btn);
+                L.DomEvent.disableScrollPropagation(btn);
+                L.DomEvent.on(btn, 'mousedown dblclick', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                });
+                L.DomEvent.on(btn, 'click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+                    if (skyVisible) {
+                        map.removeLayer(skyOverlay);
+                        btn.textContent = 'Show Sky Island';
+                        skyVisible = false;
+                        updateLocationMarkers(); // Restore location markers immediately
+                        updateSkyIslandMarkersVisibility();
+                    } else {
+                        skyOverlay.addTo(map);
+                        btn.textContent = 'Hide Sky Island';
+                        locationMarkers.forEach(marker => {
+                            if (map.hasLayer(marker)) map.removeLayer(marker);
+                        });
+                        skyVisible = true;
+                        updateSkyIslandMarkersVisibility();
+                    }
+                });
+                return container;
+            },
+            onRemove: function(map) {}
+        });
+        map.addControl(new MenuControl({ position: 'topleft' }));
+
+        // Floating coordinate display for mouse hover
+        const coordDisplay = document.getElementById('coord-display');
+        map.on('mousemove', function(e) {
+            // e.latlng is [y, x] for CRS.Simple
+            const y = Math.round(e.latlng.lat);
+            const x = Math.round(e.latlng.lng);
+            coordDisplay.textContent = `Y: ${y}, X: ${x}`;
+        });
+        map.on('mouseout', function() {
+            coordDisplay.textContent = 'Y: -, X: -';
+        });
+
+        // Example marker (add more as needed)
+        const locations = [
+            {
+                name: "Blasted Rock",
+                coords: [1050, 1070], // Center of image
+                info: "Blasted Rock is a large deserted island located in the southeast of the Bronze Sea. In the center of the island is a giant tornado that comes from a cloud above the island. It is the ruins of Cassia Town, which was formally under the Ravenna Realm's protection."
+            },
+            {
+                name: "Ravenna",
+                coords: [1330, 1350], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Cassia bay",
+                coords: [1000, 900], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Shell Island",
+                coords: [1650, 780], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Fort Castrum",
+                coords: [1200, 690], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Thrylos Crossing",
+                coords: [1365, 950], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Wind-Row Island",
+                coords: [990, 1435], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Mount Othrys",
+                coords: [600, 1000], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Sandfall Isle",
+                coords: [1545, 1087], // Change these numbers for your location
+                info: "Additional informationAdditional information"
+            },
+            {
+                name: "Sailor's Lodge",
+                coords: [1605, 1295], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Fort Talos",
+                coords: [1728, 1425], // Change these numbers for your location
+                info: "Additional informationAdditional information"
+            },
+            {
+                name: "Munera Garden",
+                coords: [1756, 1240], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "The Forrest Of Cernunnos",
+                coords: [1800, 1017], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Blackreach Island",
+                coords: [1840, 570], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Akursius keep",
+                coords: [2005, 694], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Whispering Caverns",
+                coords: [2027, 939], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Limestone Key",
+                coords: [2075, 1088], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Palo Town",
+                coords: [2130, 1235], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Silverhold",
+                coords: [1963, 1200], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Harvet island",
+                coords: [1962, 1376], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Thorin's Refuge",
+                coords: [2173, 890], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Frostmill Island",
+                coords: [2253, 1024], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Goso Jungle",
+                coords: [2253, 1165], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Darkpine Isle",
+                coords: [2342, 1126], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Dawn Island",
+                coords: [2411, 1053], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Cedar Arch",
+                coords: [2422, 880], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Gloam Ruins",
+                coords: [2332, 725], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Elm Island",
+                coords: [2488, 1047], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Mango Island",
+                coords: [2475, 1100], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Redwake",
+                coords: [2432, 1247], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "The Northern Jaws",
+                coords: [2586, 1255], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "The Southern Jaws",
+                coords: [2327, 1330], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Ierochos",
+                coords: [2620, 981], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "The Stepstones",
+                coords: [2187, 1362], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "Whitesummit",
+                coords: [2155, 1441], // Change these numbers for your location
+                info: "Additional information"
+            },
+            {
+                name: "To The Nimbus Sea",
+                coords: [584, 1600], // Change these numbers for your location
+                info: "Additional information"
+            }
+        ];
+
+
+        // Store location markers for show/hide
+        const locationMarkers = [];
+        function createEditablePopup(marker, loc) {
+            marker.bindPopup(function() {
+                const isPaloTown = loc.name.trim().toLowerCase() === "palo town";
+                const isNorthernJaws = loc.name.trim().toLowerCase() === "the northern jaws";
+                const isSouthernJaws = loc.name.trim().toLowerCase() === "the southern jaws";
+                const isRedwake = loc.name.trim().toLowerCase() === "redwake";
+                const isMangoIsland = loc.name.trim().toLowerCase() === "mango island";
+                const isDawnIsland = loc.name.trim().toLowerCase() === "dawn island";
+                const isElmIsland = loc.name.trim().toLowerCase() === "elm island";
+                const isDarkpineIsle = loc.name.trim().toLowerCase() === "darkpine isle";
+                const isGosoJungle = loc.name.trim().toLowerCase() === "goso jungle";
+                const isFrostmillIsland = loc.name.trim().toLowerCase() === "frostmill island";
+                const isThorinsRefuge = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "thorins refuge";
+                const isWhitesummit = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "whitesummit";
+                const isBlackwaterGrotto = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "blackwater grotto";
+                const isStepstones = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "the stepstones";
+                const isHarvestIsland = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "harvet island";
+                const isLimestoneKey = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "limestone key";
+                const isSilverhold = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "silverhold";
+                const isWhisperingCaverns = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "whispering caverns";
+                const isForestOfCernunnos = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "the forrest of cernunnos";
+                const isMuneraGarden = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "munera garden";
+                const isFortTalos = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "fort talos";
+                const isSailorsLodge = loc.name.trim().toLowerCase() === "sailor's lodge";
+                const issandfallIsle = loc.name.trim().toLowerCase() === "sandfall isle";
+                const isakursiusKeep = loc.name.trim().toLowerCase() === "akursius keep";
+                const isshellisland = loc.name.trim().toLowerCase() === "shell island";
+                const isrevenna = loc.name.trim().toLowerCase() === "ravenna";
+                const isblastedRock = loc.name.trim().toLowerCase() === "blasted rock";
+                const iscassiaBay = loc.name.trim().toLowerCase() === "cassia bay";
+                const iswindRowIsland = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "wind-row island";
+                const ismountOthrys = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "mount othrys";
+                const islerochos = loc.name.trim().toLowerCase() === "ierochos";
+                const isgloomRuins = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "gloam ruins";
+                const iscedarArch = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "cedar arch";
+                const isblackreachIsland = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "blackreach island";
+                const isthylosCrossing = loc.name.trim().toLowerCase().replace(/['’]/g, "") === "thrylos crossing";
+                let imageHtml = "";
+                if (loc.name.trim().toLowerCase().replace(/['’]/g,"") === "cirrus island") {
+                    imageHtml = `<img src='Bilder/cirrus-island.png' alt='Cirrus Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;'>`;
+                } else if (
+                    loc.name.trim().toLowerCase().replace(/['’]/g,"") === "skycliff island" ||
+                    loc.name.trim().toLowerCase().replace(/['’]/g,"") === "sky cliff island"
+                ) {
+                    imageHtml = `<img src='Bilder/skycliff-island.png' alt='Skycliff Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;'>`;
+                } else if (
+                    loc.name.trim().toLowerCase().replace(/['’]/g,"") === "the myriad" ||
+                    loc.name.trim().toLowerCase().replace(/['’]/g,"") === "myriad"
+                ) {
+                    imageHtml = `<img src='Bilder/myriad.png' alt='Myriad Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;'>`;
+                } else if (
+                    loc.name.trim().toLowerCase().replace(/['’]/g,"") === "djin ruins" ||
+                    loc.name.trim().toLowerCase().replace(/['’]/g,"") === "djin ruin"
+                ) {
+                    imageHtml = `<img src='Bilder/djin-ruins.png' alt='Djin Ruins Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto;'>`;
+                } else if (isPaloTown) {
+                    imageHtml = `<img src='Bilder/palo-town.png' alt='Palo Town Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isNorthernJaws) {
+                    imageHtml = `<img src='Bilder/northern-jaws.png' alt='The Northern Jaws Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isSouthernJaws) {
+                    imageHtml = `<img src='Bilder/southern-jaws.png' alt='The Southern Jaws Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isRedwake) {
+                    imageHtml = `<img src='Bilder/redwake.png' alt='Redwake Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isMangoIsland) {
+                    imageHtml = `<img src='Bilder/mango-isle.png' alt='Mango Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isDawnIsland) {
+                    imageHtml = `<img src='Bilder/dawn-isle.png' alt='Dawn Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isElmIsland) {
+                    imageHtml = `<img src='Bilder/elm-island.png' alt='Elm Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isDarkpineIsle) {
+                    imageHtml = `<img src='Bilder/darkpine.png' alt='Darkpine Isle Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isGosoJungle) {
+                    imageHtml = `<img src='Bilder/goso-jungle.png' alt='Goso Jungle Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isFrostmillIsland) {
+                    imageHtml = `<img src='Bilder/frostmill-island.png' alt='Frostmill Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isThorinsRefuge) {
+                    imageHtml = `<img src='Bilder/thorins-refuge.png' alt='Thorin's Refuge Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isWhitesummit) {
+                    imageHtml = `<img src='Bilder/whitesummit.png' alt='Whitesummit Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isBlackwaterGrotto) {
+                    imageHtml = `<img src='Bilder/blackwater-grotto.png' alt='Blackwater Grotto Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isStepstones) {
+                    imageHtml = `<img src='Bilder/stepstones.png' alt='The Stepstones Image' style='width:900px;height:600px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isHarvestIsland) {
+                    imageHtml = `<img src='Bilder/harvest-island.png' alt='Harvet Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isLimestoneKey) {
+                    imageHtml = `<img src='Bilder/limestone-key.png' alt='Limestone Key Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isSilverhold) {
+                    imageHtml = `<img src='Bilder/silverhold.png' alt='Silverhold Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isWhisperingCaverns) {
+                    imageHtml = `<img src='Bilder/whispering-caverns.png' alt='Whispering Caverns Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isForestOfCernunnos) {
+                    imageHtml = `<img src='Bilder/forest-of-cernunno.png' alt='Forest Of Cernunno Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isMuneraGarden) {
+                    imageHtml = `<img src='Bilder/munera-garden.png' alt='Munera Garden Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isFortTalos) {
+                    imageHtml = `<img src='Bilder/fort-talos.png' alt='Fort Talos Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isSailorsLodge) {
+                    imageHtml = `<img src='Bilder/sailors-lodge.png' alt='Sailor's Lodge Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (issandfallIsle) {
+                    imageHtml = `<img src='Bilder/sandfall-isle.png' alt='Sandfall Isle Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isakursiusKeep) {
+                    imageHtml = `<img src='Bilder/akursius-keep.png' alt='Akursius Keep Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isshellisland) {
+                    imageHtml = `<img src='Bilder/shell-island.png' alt='Shell Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isrevenna) {
+                    imageHtml = `<img src='Bilder/ravenna.png' alt='Ravenna Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isblastedRock) {
+                    imageHtml = `<img src='Bilder/blasted-rock.png' alt='Blasted Rock Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (iscassiaBay) {
+                    imageHtml = `<img src='Bilder/cassia-bay.png' alt='Cassia Bay Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (iswindRowIsland) {
+                    imageHtml = `<img src='Bilder/wind-row-island.png' alt='Wind-Row Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (ismountOthrys) {
+                    imageHtml = `<img src='Bilder/mount-othrys.png' alt='Mount Othrys Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (islerochos) {                    
+                    imageHtml = `<img src='Bilder/ierochos.png' alt='Ierochos Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isgloomRuins) {
+                    imageHtml = `<img src='Bilder/gloam-ruins.png' alt='Gloam Ruins Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (iscedarArch) {
+                    imageHtml = `<img src='Bilder/cedar-arch.png' alt='Cedar Arch Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isblackreachIsland) {
+                    imageHtml = `<img src='Bilder/blackreach-island.png' alt='Blackreach Island Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isthylosCrossing) {
+                    imageHtml = `<img src='Bilder/thrylos-crossing.png' alt='Thrylos Crossing Image' style='width:730px;height:460px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                }
+                // Always show popup, even if no image
+                return `<div style='width:760px;min-height:200px;padding:16px;background:rgba(0,0,0,0.85);border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.5);color:white;display:flex;flex-direction:column;align-items:center;position:relative;'>
+                    <button id='close-popup-${loc.name.replace(/\s/g,"")}' style='position:absolute;top:12px;right:18px;background:none;border:none;color:white;font-size:2em;cursor:pointer;z-index:10;'>&times;</button>
+                    <h3 style='margin-top:0;margin-bottom:12px;font-size:2em;text-align:center;'>${loc.name}</h3>
+                    ${imageHtml}
+                    <div style='width:100%;min-height:80px;background:rgba(0,0,0,0.7);color:white;border-radius:6px;border:1px solid #444;padding:8px;margin-top:8px;'>${loc.info}</div>
+                </div>`;
+            });
+            marker.on('popupopen', function() {
+                const closeBtn = document.getElementById(`close-popup-${loc.name.replace(/\s/g,"")}`);
+                if (closeBtn) {
+                    closeBtn.onclick = function() {
+                        marker.closePopup();
+                    };
+                }
+            });
+        }
+        locations.forEach(loc => {
+            const marker = L.marker(loc.coords);
+            createEditablePopup(marker, loc);
+            marker.addTo(map);
+            locationMarkers.push(marker);
+        });
+
+        // Show location markers unless sky island is visible
+        function updateLocationMarkers() {
+            if (!skyVisible && map.getZoom() < 1) {
+                locationMarkers.forEach(marker => {
+                    if (!map.hasLayer(marker)) marker.addTo(map);
+                });
+            } else {
+                locationMarkers.forEach(marker => {
+                    if (map.hasLayer(marker)) map.removeLayer(marker);
+                });
+            }
+        }
+
+        // Show sky island markers only when sky island is visible
+        function updateSkyLocationMarkers() {
+            if (skyVisible) {
+                skyLocationMarkers.forEach(marker => {
+                    if (!map.hasLayer(marker)) marker.addTo(map);
+                });
+            } else {
+                skyLocationMarkers.forEach(marker => {
+                    if (map.hasLayer(marker)) map.removeLayer(marker);
+                });
+            }
+        }
+
+        // Chest and item spawn icons (only show at high zoom)
+        // Use a reliable public PNG for chest icon
+        const chestIcon = L.icon({
+            iconUrl: 'Bilder/Dott.png',
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -16]
+        });
+
+        const itemSpawns = [
+            {
+                name: "Blackreach Island",
+                coords: [1840, 570],
+                info: "Blackreach Island.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Fort Talos",
+                coords: [1736, 1425],
+                info: "Fort Talos.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Whispering Caverns",
+                coords: [2027, 939],
+                info: "Whispering Caverns.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Silverhold Inside",
+                coords: [1963, 1200],
+                info: "Interior of Silverhold.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Blackwater Grotto",
+                coords: [2155, 1441],
+                info: "Blackwater Grotto is a town that can be found inside of Whitesummit. It is a settlement for criminals and contains Shop NPCs for criminals. Brown Mushrooms and Blue Mushrooms can be found around the town, alongside loot containers.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Palo town water cave",
+                coords: [2130, 1240],
+                info: "Palo town water cave.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Frostmill Island cave Marker",
+                coords: [2295, 1030],
+                info: "Frostmill Island.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            {
+                name: "Secret + chest",
+                coords: [2475, 1350],
+                info: "Secret + chest.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+            // ...existing code...
+            // ...existing code...
+            // Add more item/chest spawns here
+            {
+                name: "Caverns",
+                coords: [718, 882],
+                info: "Caverns.",
+                icon: L.divIcon({
+                    className: 'black-dot-icon',
+                    html: '<div style="width:12px;height:12px;background:black;border-radius:50%;border:1px solid #222;"></div>',
+                    iconSize: [12, 12],
+                    iconAnchor: [6, 6]
+                })
+            },
+        ];
+
+        // Store item markers for show/hide
+        const itemMarkers = [];
+        itemSpawns.forEach(spawn => {
+            const marker = L.marker(spawn.coords, { icon: spawn.icon });
+            marker.bindPopup(function() {
+                let imageHtml = "";
+                const isFrostmillCave = spawn.name.trim().toLowerCase() === "frostmill island cave marker";
+                const isBlackwaterGrottoDot = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "blackwater grotto";
+                const isPaloTownCave = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "palo town water cave";
+                const isSilverholdInside = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "silverhold inside";
+                const isWhisperingCavernsBlackDot = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "whispering caverns";
+                const isFortTalosBlackDot = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "fort talos";
+                const isBlackreachMazeDot = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "blackreach island";
+                const isCavernsBlackDot = spawn.name.trim().toLowerCase().replace(/['’]/g,"") === "caverns";
+                if (isFrostmillCave) {
+                    imageHtml = `<img src='Bilder/frostmill-mines.png' alt='Frostmill Mines Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isBlackwaterGrottoDot) {
+                    imageHtml = `<img src='Bilder/blackwater-grotto.png' alt='Blackwater Grotto Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isPaloTownCave) {
+                    imageHtml = `<img src='Bilder/palo-town cave.png' alt='Palo Town Cave Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isSilverholdInside) {
+                    imageHtml = `<img src='Bilder/silverhold-inside.png' alt='Silverhold Inside Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isWhisperingCavernsBlackDot) {
+                    imageHtml = `<img src='Bilder/whispering-caverns maze.png' alt='Whispering Caverns Maze Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isFortTalosBlackDot) {
+                    imageHtml = `<img src='Bilder/fort-talos-dungeons.png' alt='Fort Talos Dungeons Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isBlackreachMazeDot) {
+                    imageHtml = `<img src='Bilder/blackreach-maze.png' alt='Blackreach Maze Image' style='width:400px;height:240px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                } else if (isCavernsBlackDot) {
+                    imageHtml = `<img src='Bilder/caverns.png' alt='Caverns Image' style='width:700px;height:420px;object-fit:contain;background:transparent;border-radius:8px;margin-bottom:12px;'>`;
+                }
+                return `<div style='width:400px;min-height:120px;padding:16px;background:rgba(0,0,0,0.85);border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,0.5);color:white;position:relative;'>
+                    <h3 style='margin-top:0;margin-bottom:8px;font-size:1.3em;text-align:center;'>${spawn.name}</h3>
+                    ${imageHtml}
+                    <div>${spawn.info}</div>
+                </div>`;
+            });
+            itemMarkers.push(marker);
+        });
+
+        // Show item markers only at zoom >= 1
+        function updateItemMarkers() {
+            if (map.getZoom() >= 1) {
+                itemMarkers.forEach(marker => {
+                    if (!map.hasLayer(marker)) marker.addTo(map);
+                });
+            } else {
+                itemMarkers.forEach(marker => {
+                    if (map.hasLayer(marker)) map.removeLayer(marker);
+                });
+            }
+        }
+        function updateAllMarkers() {
+            updateItemMarkers();
+            updateLocationMarkers();
+        }
+        map.on('zoomend', updateAllMarkers);
+
+        // Update sky island markers visibility on zoom
+        function updateSkyIslandMarkersVisibility() {
+            if (skyVisible && map.getZoom() < 1) {
+                skyIslandMarkers.forEach(marker => {
+                    if (!map.hasLayer(marker)) marker.addTo(map);
+                });
+            } else {
+                skyIslandMarkers.forEach(marker => {
+                    if (map.hasLayer(marker)) map.removeLayer(marker);
+                });
+            }
+        }
+        map.on('zoomend', updateSkyIslandMarkersVisibility);
+
+        // Tab switching logic for slide menu
+        setTimeout(() => {
+            const tabBtns = document.querySelectorAll('.slide-menu-tab-btn');
+            const tabContents = {
+                info: document.getElementById('slide-menu-tab-info'),
+                links: document.getElementById('slide-menu-tab-links')
+            };
+            tabBtns.forEach(btn => {
+                btn.onclick = function() {
+                    tabBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    Object.keys(tabContents).forEach(key => {
+                        tabContents[key].classList.remove('active');
+                    });
+                    tabContents[btn.getAttribute('data-tab')].classList.add('active');
+                };
+            });
+        }, 0);
+
+        updateAllMarkers();
+    
+    </script>
+</body>
+</html>
